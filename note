@@ -66,6 +66,7 @@ nodes:
     - address: 192.168.56.180
       user: rke
       role: [controlplane, etcd, worker]
+      ssh_key_path: /home/centos/.ssh/id_rsa
 
 rke up --config cluster.yml
 export KUBECONFIG=./kube_config_cluster.yml

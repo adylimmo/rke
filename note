@@ -1,0 +1,84 @@
+==============RKE Centos 7 = https://computingforgeeks.com/install-kubernetes-production-cluster-using-rancher-rke/
+sudo yum install curl wget nano -y
+========kubectl
+curl -LO https://storage.googleapis.com/kubernetes-release/release/`curl -s https://storage.googleapis.com/kubernetes-release/release/stable.txt`/bin/linux/amd64/kubectl
+chmod +x ./kubectl
+sudo mv ./kubectl /usr/local/bin/kubectl
+kubectl version --client
+=======rke
+curl -s https://api.github.com/repos/rancher/rke/releases/latest | grep download_url | grep amd64 | cut -d '"' -f 4 | wget -qi -
+chmod +x rke_linux-amd64
+sudo mv rke_linux-amd64 /usr/local/bin/rke
+rke --version
+### Helm 3 ###
+curl -fsSL -o get_helm.sh https://raw.githubusercontent.com/helm/helm/master/scripts/get-helm-3
+chmod 700 get_helm.sh
+./get_helm.sh
+=======create user
+sudo useradd -m rke
+sudo passwd rke
+=======enable kernel
+for module in br_netfilter ip6_udp_tunnel ip_set ip_set_hash_ip ip_set_hash_net iptable_filter iptable_nat iptable_mangle iptable_raw nf_conntrack_netlink nf_conntrack nf_conntrack_ipv4   nf_defrag_ipv4 nf_nat nf_nat_ipv4 nf_nat_masquerade_ipv4 nfnetlink udp_tunnel veth vxlan x_tables xt_addrtype xt_conntrack xt_comment xt_mark xt_multiport xt_nat xt_recent xt_set  xt_statistic xt_tcpudp;
+     do
+       if ! lsmod | grep -q $module; then
+         echo "module $module is not present";
+         sudo modprobe $module
+       fi;
+done
+========disable swap
+sudo nano /etc/fstab
+# Add comment to swap line
+
+sudo swapoff -a
+sudo tee -a /etc/sysctl.d/99-kubernetes.conf <<EOF
+net.bridge.bridge-nf-call-iptables  = 1
+net.ipv4.ip_forward                 = 1
+net.bridge.bridge-nf-call-ip6tables = 1
+EOF
+
+sudo sysctl --system
+free -h
+=====install docker
+curl https://releases.rancher.com/install-docker/20.10.sh | sudo sh
+sudo systemctl enable --now docker
+sudo usermod -aG docker rke
+id rke
+sudo systemctl start docker
+========open port
+for i in 22 80 443 179 5473 6443 8472 2376 8472 2379-2380 9099 10250 10251 10252 10254 30000-32767; do
+    sudo firewall-cmd --add-port=${i}/tcp --permanent
+done
+
+
+for i in 8285 8472 4789 30000-32767; do
+   sudo firewall-cmd --add-port=${i}/udp --permanent
+done
+
+sudo firewall-cmd --reload
+=========generate keygen
+ssh-keygen
+ssh-copy-id 192.168.56.180
+sudo nano /etc/ssh/sshd_config
+	AllowTcpForwarding yes
+=========deploy rke
+nano cluster.yml
+nodes:
+    - address: 192.168.56.180
+      user: rke
+      role: [controlplane, etcd, worker]
+
+rke up --config cluster.yml
+export KUBECONFIG=./kube_config_cluster.yml
+kubectl get nodes
+
+
+
+==========troubleshoot==========
+Here is the workaround for that problem "etcdmain: rejected connection from "xxx:xxx" (error "remote error: tls: bad certificate", ServerName "")"
+
+Run sudo rm -rf /etc/kubernetes/ /var/lib/kubelet/ /var/lib/etcd/ on your control plane nodes.
+
+
+docker kill $(docker ps -q)
+docker rm $(docker ps -a -q)
+docker rmi $(docker images -q)

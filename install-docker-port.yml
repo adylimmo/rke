@@ -1,0 +1,14 @@
+---
+- name: Docker
+  hosts: node1:node2
+  remote_user: root
+  tasks:
+    - name: install epel
+      shell: yum install epel-release -y
+    - name: install curl
+      shell: yum install curl -y
+    - name: donwload docker
+      shell: curl https://releases.rancher.com/install-docker/20.10.sh | sudo sh
+    - name: start docker
+      shell: sudo systemctl enable --now docker && sudo usermod -aG docker centos && sudo systemctl start docker
+  

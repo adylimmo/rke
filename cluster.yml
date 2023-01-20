@@ -1,0 +1,13 @@
+nodes:
+    - address: 192.168.56.181
+      user: centos
+      role: [controlplane, etcd, worker]
+      ssh_key_path: /home/centos/.ssh/id_rsa
+    - address: 192.168.56.182
+      user: centos
+      role: [controlplane, etcd, worker]
+      ssh_key_path: /home/centos/.ssh/id_rsa
+    - address: 192.168.56.183
+      user: centos
+      role: [worker]
+      ssh_key_path: /home/centos/.ssh/id_rsa

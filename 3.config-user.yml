@@ -1,0 +1,26 @@
+---
+- name: Create rke user with passwordless sudo
+  hosts: node1:node2
+  remote_user: root
+  tasks:
+    - name: Add RKE admin user
+      user:
+        name: centos
+        shell: /bin/bash
+     
+    - name: Create sudo file
+      file:
+        path: /etc/sudoers.d/centos
+        state: touch
+    
+    - name: Give rke user passwordless sudo
+      lineinfile:
+        path: /etc/sudoers.d/centos
+        state: present
+        line: 'centos ALL=(ALL:ALL) NOPASSWD: ALL'
+     
+    - name: Set authorized key taken from file
+      authorized_key:
+        user: centos
+        state: present
+        key: "{{ lookup('file', '~/.ssh/id_rsa.pub') }}"
